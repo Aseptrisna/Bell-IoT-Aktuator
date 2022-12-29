@@ -12,11 +12,11 @@ const char *topic = "Log";
 const char *mqtt_username = "/kapalselam:kapalselam";
 const char *mqtt_password = "1245and4512";
 const int mqtt_port = 1883;
-const char *guid = "53e91d90-4333-42dc-ac03-2243575834d8";
+const char *guid = "Aktuator-2243575834d8-2022";
 const char *name = "Bell Lskk Pelajar Pejuang";
 bool shouldSaveConfig = false;
 
-
+void(* resetFunc) (void) = 0;
 int relay1 = D1 ;
 int relay2 = D2 ;
 
@@ -67,6 +67,10 @@ void callback(char *guid, byte *payload, unsigned int length) {
 }
 
 void loop() {
+  if (!client.connected()) {   
+//   mqttReconnect();
+ setup();
+  }
   client.loop();
 }
 
@@ -75,17 +79,33 @@ void sensor () {}
 void setup_wifi () {
   WiFiManager wifiManager;
   wifiManager.setSaveConfigCallback(saveConfigCallback);
-  wifiManager.setAPStaticIPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
-  if(!wifiManager.autoConnect("Bell IoT")) {
+  wifiManager.setAPStaticIPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
+  if (!wifiManager.autoConnect("Bell IoT Aktuator")) {
     Serial.println("failed to connect and hit timeout");
     delay(3000);
     ESP.reset();
     delay(5000);
-  } 
+  }
   Serial.println("Wi-Fi connected...)");
 }
 
 void saveConfigCallback () {
   Serial.println("Should save config");
   shouldSaveConfig = true;
+}
+void mqttReconnect() {
+ String client_id = guid;
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
+      Serial.println("connected");
+      client.subscribe(guid);
+    } else {Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+//      ESP.restart();
+      resetFunc();
+      delay(100);
+    }
+  }
 }
